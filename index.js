@@ -1,5 +1,6 @@
 import express from "express";
 import connect from "./db.js";
+import rootRoutes from "./src/routes/rootRoutes.js";
 
 // tạo object tổng của express
 
@@ -8,6 +9,8 @@ const app = express();
 app.use(express.json());
 
 // Thêm middleware để convert string về JSON với API post và put
+//import rootRoutes vao index.js
+app.use(rootRoutes);
 
 //viết API  hello world !!
 
@@ -30,15 +33,15 @@ app.get("/get-user/:id/:ten", (req, res) => {
 });
 
 // lấy body từ API POST (create) và PUT (update)
-app.post("/create-user", (req, res) => {
-  let body = req.body;
-  res.send(body);
-});
+// app.post("/create-user", (req, res) => {
+//   let body = req.body;
+//   res.send(body);
+// });
 
-app.get("/get-user-db", async (req, res) => {
-  const [data] = await connect.query(" select * from users ");
-  res.send(data);
-});
+// app.get("/get-user-db", async (req, res) => {
+//   const [data] = await connect.query(" select * from users ");
+//   res.send(data);
+// });
 
 app.post("/create-user-db", async (req, res) => {
   const query = "INSERT INTO users(full_name,email,pass_word) VALUES (?,?,?)";
