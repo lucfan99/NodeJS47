@@ -1,14 +1,15 @@
 import express from "express";
 import connect from "./db.js";
 import rootRoutes from "./src/routes/rootRoutes.js";
-
+import cors from "cors";
 // tạo object tổng của express
 
 const app = express();
 
-app.use(express.json());
-
+// add middleWare cors de nhanrequest tuwf FE or ben khac
+app.use(cors());
 // Thêm middleware để convert string về JSON với API post và put
+app.use(express.json());
 //import rootRoutes vao index.js
 app.use(rootRoutes);
 
