@@ -2,12 +2,21 @@ import express from "express";
 import connect from "./db.js";
 import rootRoutes from "./src/routes/rootRoutes.js";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 // tạo object tổng của express
 
 const app = express();
 
-// add middleWare cors de nhanrequest tuwf FE or ben khac
-app.use(cors());
+// add middleWare cors để  nhận request từ FE or ben khac
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true, // set true để BE nhận đc cookie từ FE
+  })
+);
+// Thêm midleWare đẻ get info cookie từ request FE or postman
+app.use(cookieParser());
+
 // Thêm middleware để convert string về JSON với API post và put
 app.use(express.json());
 //import rootRoutes vao index.js
