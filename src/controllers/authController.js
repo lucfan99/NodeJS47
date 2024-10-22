@@ -4,6 +4,9 @@ import { Op, where } from "sequelize";
 import bcrypt from "bcrypt"; // lib mã hóa password
 import transporter from "../config/transporter.js";
 import jwt from "jsonwebtoken"; //lib tạo token
+import { createToken } from "../config/jwt.js";
+import crypto from "crypto";
+
 //tạo obj model đại diện cho tất cả model của orm
 const model = initModels(sequelize);
 
@@ -78,10 +81,7 @@ const login = async (req, res) => {
     //tạo payload để lưu vào access token
     let payload = { userId: checkUser.user_id };
     //tạo access token bằng khoắ đối xứng
-    let accessToken = jwt.sign({ payload }, "NODE47", {
-      algorithm: "HS256",
-      expiresIn: "30m",
-    });
+    let accessToken = createToken(payload);
     return res
       .status(200)
       .json({ message: "Login successfully", token: accessToken });
@@ -89,4 +89,148 @@ const login = async (req, res) => {
     return res.status(500).json({ message: "error API login" });
   }
 };
-export { signUp, login };
+
+const loginFacebook = async (req, res) => {
+  try {
+    let { id, email, name } = req.body;
+    //lấy info user từ db
+    let checkUser = await model.users.findOne({ where: { email } });
+
+    //nếu email ko tồn tại trong db => tạo user mới, send mail và return access token
+    if (!checkUser) {
+      await model.users.create({
+        full_name: name,
+        email,
+        face_app_id: id,
+      });
+      ///send email welcome
+      //send email
+      //b1:cấu hình email
+      const mailOption = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "welcome to Our service",
+        html: `
+        <h1>Welcome ${name} to Our service</h1>
+      `,
+      };
+      //B2:  gửi email
+      return transporter.sendMail(mailOption, (err, info) => {
+        if (err) {
+          console.log(err);
+          return res.status(500).json({ message: "send mail fail" });
+        }
+        //tạo access token
+
+        //tạo payload để lưu vào access token
+        let payload = { userId: checkUser.user_id };
+        //tạo access token bằng khoắ đối xứng
+        let accessToken = createToken(payload);
+        return res
+          .status(200)
+          .json({ message: "Login Successfully", token: accessToken });
+      });
+    }
+    // nếu user tồn tại
+    //tạo access token
+
+    //tạo payload để lưu vào access token
+    let payload = { userId: checkUser.user_id };
+    //tạo access token bằng khoắ đối xứng
+    let accessToken = createToken(payload);
+    return res
+      .status(201)
+      .json({ message: "Login Successfully", token: accessToken });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ message: "error API login facebook" });
+  }
+};
+
+const forgotPassword = async (req, res) => {
+  try {
+    let { email } = req.body;
+
+    //ktra email có tồn tại trong db ko
+    let checkUser = await model.users.findOne({ where: { email } });
+    if (!checkUser) {
+      return res.status(400).json({ message: "Email is wrong" });
+    }
+
+    //tạo code
+    let randomCode = crypto.randomBytes(6).toString("hex");
+    //tạo biến để lưu expire code
+    let expired = new Date(new Date().getTime() + 2 * 60 * 60 * 1000); // expire 2 hour
+    //Lưu code vào db
+    await model.code.create({
+      code: randomCode,
+      expired,
+    });
+    //send mail gửi code forgot pass
+    //send email
+    //b1:cấu hình email
+    const mailOption = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Code xác thực của bạn là :",
+      html: `
+        <h1>${randomCode} </h1>
+      `,
+    };
+    //B2:  gửi email
+    return transporter.sendMail(mailOption, (err, info) => {
+      if (err) {
+        console.log(err);
+        return res.status(500).json({ message: "send mail fail" });
+      }
+
+      return res
+        .status(200)
+        .json({ message: "Send forgot password Successfully" });
+    });
+  } catch (err) {
+    return res.status(500).json({ message: "error api forgot password" });
+  }
+};
+
+const changePassword = async (req, res) => {
+  try {
+    let { email, code, newPass } = req.body;
+
+    //check email có tồn tại trong db ko
+    let checkEmail = await model.users.findOne({
+      where: { email },
+    });
+
+    if (!checkEmail) {
+      return res.status(400).json({ message: "User Email is wrong" });
+    }
+
+    if (!code) {
+      return res.status(400).json({ message: "Code is wrong" });
+    }
+
+    let checkCode = await model.code.findOne({
+      where: { code },
+    });
+
+    if (!checkCode) {
+      return res.status(400).json({ message: "Code is Undefine" });
+    }
+
+    let hashNewPass = bcrypt.hashSync(newPass, 10);
+    //cách 1:
+    checkEmail.pass_word = hashNewPass;
+    checkEmail.save();
+    //cách 2 : dùng function update
+
+    //Hủy code sau khi đã change pass
+    await model.code.destroy({
+      where: { code },
+    });
+    return res.status(200).json({ message: "Change pass successfully" });
+  } catch (error) {
+    return res.status(500).json({ message: "error API change password" });
+  }
+};
+export { signUp, login, loginFacebook, forgotPassword, changePassword };

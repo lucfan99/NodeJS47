@@ -6,10 +6,11 @@ import {
   getVideosTypeId,
   getVideoById,
 } from "../controllers/videoController.js";
+import { middlewareToken } from "../config/jwt.js";
 //define API get list video
 videoRoutes.get("/get-videos", getVideos);
 // define Api get type video
-videoRoutes.get("/get-types", getTypes);
+videoRoutes.get("/get-types", middlewareToken, getTypes); // apply authentication
 //define api get list video by video type
 videoRoutes.get("/get-videos/:typeId", getVideosTypeId);
 
