@@ -7,11 +7,12 @@ import {
   changePassword,
   extendToken,
 } from "../controllers/authController.js";
+import { tryCatch } from "../config/tryCatch.js";
 const authRoutes = express.Router();
 //defint API register (sign-up)
 authRoutes.post("/sign-up", signUp);
 //defint API signIn (sign-in)
-authRoutes.post("/login", login);
+authRoutes.post("/login", tryCatch(login));
 //definr API signIn facebook
 authRoutes.post("/login-facebook", loginFacebook);
 

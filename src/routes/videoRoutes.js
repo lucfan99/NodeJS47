@@ -7,10 +7,11 @@ import {
   getVideoById,
 } from "../controllers/videoController.js";
 import { middlewareToken } from "../config/jwt.js";
+import { tryCatch } from "../config/tryCatch.js";
 
 const videoRoutes = express.Router();
 //define API get list video
-videoRoutes.get("/get-videos", getVideos);
+videoRoutes.get("/get-videos", tryCatch(getVideos));
 // define Api get type video
 videoRoutes.get("/get-types", middlewareToken, getTypes); // apply authentication
 //define api get list video by video type

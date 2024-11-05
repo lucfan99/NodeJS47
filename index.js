@@ -3,6 +3,7 @@ import connect from "./db.js";
 import rootRoutes from "./src/routes/rootRoutes.js";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+
 // tạo object tổng của express
 
 const app = express();
@@ -21,6 +22,16 @@ app.use(cookieParser());
 app.use(express.json());
 //import rootRoutes vao index.js
 app.use(rootRoutes);
+
+//define middleware de handle loi
+//define cho express hieu khi co error xay ra
+// hti express no se tim toi midleware nay
+//luu y: phai truyen 4 param de express hieu
+app.use((err, req, res, next) => {
+  res
+    .status(err.status || 500)
+    .json({ message: err.message || "Internal server" });
+});
 
 //viết API  hello world !!
 
@@ -65,3 +76,8 @@ app.post("/create-user-db", async (req, res) => {
 app.listen(8080, () => {
   console.log("BE starting with port 8080");
 });
+
+// b1: npx prisma init
+//b1.1: sửa lại info connection string
+//b2: npx prisma db pull  (db first)
+//b3: npx prisma generate(khởi tạo client)

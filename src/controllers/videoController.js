@@ -5,20 +5,15 @@ import { Op, where } from "sequelize";
 //tạo obj model đại diện cho tất cả model của orm
 const model = initModels(sequelize);
 const getVideos = async (req, res) => {
-  try {
-    let page = 2;
-    let size = 4;
-    let index = (page - 1) * size;
+  let page = 2;
+  let size = 4;
+  let index = (page - 1) * size;
 
-    let data = await model.video.findAll({
-      offset: index,
-      limit: size,
-    });
-    return res.status(200).json(data);
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({ message: "error for api get list videos" });
-  }
+  let data = await model.video.findAll({
+    offset: index,
+    limit: size,
+  });
+  return res.status(200).json(data);
 };
 
 const getTypes = async (req, res) => {

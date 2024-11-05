@@ -7,19 +7,24 @@ import jwt from "jsonwebtoken"; //lib tạo token
 import { createRefToken, createToken } from "../config/jwt.js";
 import crypto from "crypto";
 
+import { PrismaClient } from "@prisma/client";
 //tạo obj model đại diện cho tất cả model của orm
 const model = initModels(sequelize);
+const prisma = new PrismaClient();
 
 const signUp = async (req, res) => {
   try {
     //lấy input từ body req(email,full_name,pass_word)
     let { full_name, email, pass_word } = req.body;
     //ktra xem email có tồn tại trong db ko?
-    let checkUser = await model.users.findOne({
-      where: {
-        email,
-      },
-    });
+    // let checkUser = await model.users.findOne({
+    //   where: {
+    //     email,
+    //   },
+    // });
+
+    let checkUser = await prisma.users.findFirst({ where: { email } });
+
     //code theo hướng fail_first
     //Nếu user tồn tại thì báo lỗi
     if (checkUser) {
@@ -27,12 +32,19 @@ const signUp = async (req, res) => {
     }
 
     //create new user
-    await model.users.create({
-      full_name,
-      email,
-      pass_word: bcrypt.hashSync(pass_word, 10),
-    });
+    // await model.users.create({
+    //   full_name,
+    //   email,
+    //   pass_word: bcrypt.hashSync(pass_word, 10),
+    // });
 
+    await prisma.users.create({
+      data: {
+        full_name,
+        email,
+        pass_word,
+      },
+    });
     //send email
     //b1:cấu hình email
     const mailOption = {
@@ -57,55 +69,51 @@ const signUp = async (req, res) => {
 };
 
 const login = async (req, res) => {
-  try {
-    // lấy email và pass từ body req
-    let { email, pass_word } = req.body;
-    //ktra email có tồn tại trong db
-    //nếu ko có email => return err
-    let checkUser = await model.users.findOne({
-      where: { email },
-    });
-    if (!checkUser) {
-      return res.status(400).json({ message: "email is wrong" });
-    }
-
-    // nếu tồn tại => check pass
-    //param 1 là password chưa mã hóa
-    // param 2 là pass đã mã hóa
-    let checkPass = bcrypt.compareSync(pass_word, checkUser.pass_word);
-    if (!checkPass) {
-      return res.status(400).json({ message: "password is wrong" });
-    }
-    // dùng lib jsonwebtoken để tạo token
-
-    //tạo payload để lưu vào access token
-    let payload = { userId: checkUser.user_id };
-    //tạo access token bằng khoắ đối xứng
-    let accessToken = createToken(payload);
-    //tạo refresh token
-    let refreshToken = createRefToken(payload);
-    //Lưu refresh Token vào table users
-    await model.users.update(
-      {
-        refresh_token: refreshToken,
-      },
-      {
-        where: { user_id: checkUser.user_id },
-      }
-    );
-    // gắn refresh token cho cookie của response
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: false, // dùng riêng cho localhost
-      sameSite: "Lax", //đảm bảo cookie đc gửi trong nhiều domain
-      maxAge: 7 * 24 * 60 * 60 * 1000, // thời gian tồn tại là 7 day
-    });
-    return res
-      .status(200)
-      .json({ message: "Login successfully", token: accessToken });
-  } catch (err) {
-    return res.status(500).json({ message: "error API login" });
+  // lấy email và pass từ body req
+  let { email, pass_word } = req.body;
+  //ktra email có tồn tại trong db
+  //nếu ko có email => return err
+  let checkUser = await model.users.findOne({
+    where: { email },
+  });
+  if (!checkUser) {
+    return res.status(400).json({ message: "email is wrong" });
   }
+
+  // nếu tồn tại => check pass
+  //param 1 là password chưa mã hóa
+  // param 2 là pass đã mã hóa
+  let checkPass = bcrypt.compareSync(pass_word, checkUser.pass_word);
+  if (!checkPass) {
+    return res.status(400).json({ message: "password is wrong" });
+  }
+  // dùng lib jsonwebtoken để tạo token
+
+  //tạo payload để lưu vào access token
+  let payload = { userId: checkUser.user_id };
+  //tạo access token bằng khoắ đối xứng
+  let accessToken = createToken(payload);
+  //tạo refresh token
+  let refreshToken = createRefToken(payload);
+  //Lưu refresh Token vào table users
+  await model.users.update(
+    {
+      refresh_token: refreshToken,
+    },
+    {
+      where: { user_id: checkUser.user_id },
+    }
+  );
+  // gắn refresh token cho cookie của response
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: false, // dùng riêng cho localhost
+    sameSite: "Lax", //đảm bảo cookie đc gửi trong nhiều domain
+    maxAge: 7 * 24 * 60 * 60 * 1000, // thời gian tồn tại là 7 day
+  });
+  return res
+    .status(200)
+    .json({ message: "Login successfully", token: accessToken });
 };
 
 const loginFacebook = async (req, res) => {
