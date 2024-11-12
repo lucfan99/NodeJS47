@@ -80,4 +80,29 @@ app.listen(8080, () => {
 // b1: npx prisma init
 //b1.1: sửa lại info connection string
 //b2: npx prisma db pull  (db first)
-//b3: npx prisma generate(khởi tạo client)
+//b3: npx prisma generate(khởi tạo client) => connect trong sequelize
+
+//yarn add swagger-ui-express swagger-jsdoc
+import swaggerUi from "swagger-ui-express";
+import swaggerJSDoc from "swagger-jsdoc";
+
+const option = {
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "Swagger nodejs 47",
+      version: "1.0.1",
+      description: "mô tả swagger",
+    },
+    servers: [
+      {
+        url: "http://localhost:8080",
+        description: "Mô tả thông tin server",
+      },
+    ],
+  },
+  apis: ["src/routes/*.js"],
+};
+
+const specs = swaggerJSDoc(option);
+app.use("/swagger", swaggerUi.serve, swaggerUi.setup(specs));
